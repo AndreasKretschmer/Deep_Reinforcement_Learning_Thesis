@@ -1,5 +1,6 @@
 import gym
-import cv2
+from cv2 import cv2
+import numpy as np
 from DQN import DQN
 from expReplay import ExpReplay
 
@@ -26,15 +27,15 @@ class SpaceInvaders:
         self.replay_memory = ExpReplay(EXP_SIZE)
 
         #create the model
-        self.model = DQN(env.action_space , NUM_FRAMES)
+        self.model = DQN(self.env.action_space , NUM_FRAMES)
 
         #init an image buffer
         self.imageBuffer = []
 
         #fill image buffer with first 3 states
-        s1, r1, _, _ = self.env.step(0)
-        s2, r2, _, _ = self.env.step(0)
-        s3, r3, _, _ = self.env.step(0)
+        s1, _, _, _ = self.env.step(0)
+        s2, _, _, _ = self.env.step(0)
+        s3, _, _, _ = self.env.step(0)
         self.imageBuffer = [s1, s2, s3]
 
     def preprocessImgaeBuffer(self):
@@ -42,7 +43,7 @@ class SpaceInvaders:
         black_buffer = [x[1:85, :, np.newaxis] for x in black_buffer]
         return np.concatenate(black_buffer, axis=2)
 
-     def train(self, num_frames):
+    def train(self, num_frames):
         observation_num = 0
         curr_state = self.preprocessImgaeBuffer()
         epsilon = INITIAL_EPSILON
@@ -60,7 +61,7 @@ class SpaceInvaders:
             initial_state = self.preprocessImgaeBuffer()
             self.process_buffer = []
 
-            predict_movement, predict_q_value = self.deep_q.predictAction(curr_state, epsilon)
+            predict_movement, predict_q_value = self.model.predictAction(curr_state, epsilon)
 
             reward, done = 0, False
             for i in range(NUM_FRAMES):
@@ -80,18 +81,18 @@ class SpaceInvaders:
                 total_reward = 0
 
             new_state = self.preprocessImgaeBuffer()
-            self.replay_memory.addExpierience(initial_state, predict_movement, reward, done, new_state)
+            self.replay_memory.addExpierience((initial_state, predict_movement, reward, done, new_state))
             total_reward += reward
 
             if self.replay_memory.GetSize() > MIN_OBSERVATION:
                 s_batch, a_batch, r_batch, d_batch, s2_batch = self.replay_memory.GetSampleExpierences(MINIBATCH_SIZE)
-                self.deep_q.train(s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num)
-                self.deep_q.target_train()
+                self.model.train(s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num)
+                self.model.target_train()
 
             # Save the network every 100000 iterations
             if observation_num % 10000 == 9999:
                 print("Saving Network")
-                self.deep_q.save_network("saved.h5")
+                self.model.save_network("saved.h5")
 
             alive_frame += 1
             observation_num += 1

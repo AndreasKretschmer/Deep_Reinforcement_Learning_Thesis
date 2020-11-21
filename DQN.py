@@ -7,6 +7,7 @@ from keras.optimizers import Adam
 from keras.layers.core import Activation, Dropout, Flatten, Dense
 
 TAU = 0.01
+DECAY_RATE = 0.99
 
 class DQN:
     def __init__(self, actionSpace, frameNumber):
@@ -40,10 +41,27 @@ class DQN:
     def predictAction(self, data, epsilon):
         q_actions = self.model.predict(data.reshape(1, 84, 84, self.frameNumber), batch_size = 1)
         opt_policy = np.argmax(q_actions)
-        rand_val = np.random.random()
+        rand_val = random.random()
         if rand_val < epsilon:
-            opt_policy = np.random.randint(0, NUM_ACTIONS)
+            opt_policy = np.random.randint(0, self.actionSpace)
         return opt_policy, q_actions[0, opt_policy]
+
+    def train(self, s_batch, a_batch, r_batch, d_batch, s2_batch, observation_num):
+        batch_size = s_batch.shape[0]
+        targets = np.zeros((batch_size, self.actionSpace))
+
+        for i in range(batch_size):
+            targets[i] = self.model.predict(s_batch[i].reshape(1, 84, 84, self.actionSpace), batch_size = 1)
+            fut_action = self.target_model.predict(s2_batch[i].reshape(1, 84, 84, self.actionSpace), batch_size = 1)
+            targets[i, a_batch[i]] = r_batch[i]
+            if d_batch[i] == False:
+                targets[i, a_batch[i]] += DECAY_RATE * np.max(fut_action)
+
+        loss = self.model.train_on_batch(s_batch, targets)
+
+        # Print the loss every 10 iterations.
+        if observation_num % 10 == 0:
+            print("We had a loss equal to ", loss)
 
     def target_train(self):
         model_weights = self.model.get_weights()

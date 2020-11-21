@@ -14,7 +14,7 @@ class ExpReplay:
 
     def addExpierience(self, Expierience):
 
-        if self.Step < self.Size
+        if self.Step < self.Size:
             self.Que.append(Expierience)
             self.Step += 1
         else:
@@ -32,6 +32,8 @@ class ExpReplay:
         if self.Step < SampleSize:
             ExpSamples = random.sample(self.Que, self.Step)
         else:
-            ExpSamples = random.samples(self.Que, SampleSize)
+            ExpSamples = random.sample(self.Que, SampleSize)
 
         oldS_Sample, a_Sample, r_Sample, d_Sample ,newS_Sample = list(map(np.array, list(zip(*ExpSamples))))
+
+        return oldS_Sample, a_Sample, r_Sample, d_Sample ,newS_Sample
