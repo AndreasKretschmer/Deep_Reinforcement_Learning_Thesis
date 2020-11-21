@@ -27,7 +27,7 @@ class SpaceInvaders:
         self.replay_memory = ExpReplay(EXP_SIZE)
 
         #create the model
-        self.model = DQN(self.env.action_space , NUM_FRAMES)
+        self.model = DQN(self.env.action_space.n , NUM_FRAMES)
 
         #init an image buffer
         self.imageBuffer = []

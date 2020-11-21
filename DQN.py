@@ -2,7 +2,7 @@ import numpy as np
 import random
 import keras
 from keras.models import load_model, Sequential
-from keras.layers.convolutional import Convolution2D
+from keras.layers.convolutional import Conv2D
 from keras.optimizers import Adam
 from keras.layers.core import Activation, Dropout, Flatten, Dense
 
@@ -25,11 +25,11 @@ class DQN:
 
     def create_model(self):
         model = Sequential()
-        model.add(Convolution2D(32, 8, 8, subsample=(4, 4), input_shape=(84, 84, self.frameNumber)))
+        model.add(Conv2D(32, (8, 8), strides=(4, 4), input_shape=(84, 84, self.frameNumber)))
         model.add(Activation('relu'))
-        model.add(Convolution2D(64, 4, 4, subsample=(2, 2)))
+        model.add(Conv2D(64, (4, 4), strides=(2, 2)))
         model.add(Activation('relu'))
-        model.add(Convolution2D(64, 3, 3))
+        model.add(Conv2D(64, 3, 3))
         model.add(Activation('relu'))
         model.add(Flatten()) # this converts our 3D feature maps to 1D feature vectors
         model.add(Dense(512))
@@ -51,8 +51,8 @@ class DQN:
         targets = np.zeros((batch_size, self.actionSpace))
 
         for i in range(batch_size):
-            targets[i] = self.model.predict(s_batch[i].reshape(1, 84, 84, self.actionSpace), batch_size = 1)
-            fut_action = self.target_model.predict(s2_batch[i].reshape(1, 84, 84, self.actionSpace), batch_size = 1)
+            targets[i] = self.model.predict(s_batch[i].reshape(1, 84, 84, self.frameNumber), batch_size = 1)
+            fut_action = self.target_model.predict(s2_batch[i].reshape(1, 84, 84, self.frameNumber), batch_size = 1)
             targets[i, a_batch[i]] = r_batch[i]
             if d_batch[i] == False:
                 targets[i, a_batch[i]] += DECAY_RATE * np.max(fut_action)
@@ -71,7 +71,7 @@ class DQN:
         self.target_model.set_weights(target_model_weights)
         
     def save_network(self, path):
-        self.model.save(path)
+        #self.model.save(path)
         print("Successfully saved network.")
 
     def load_network(self, path):
