@@ -96,3 +96,43 @@ class SpaceInvaders:
 
             alive_frame += 1
             observation_num += 1
+
+    def simulate(self, path = "", save = False):
+        """Simulates game"""
+        done = False
+        tot_award = 0
+        if save:
+            self.env.monitor.start(path, force=True)
+        self.env.reset()
+        self.env.render()
+        while not done:
+            state = self.preprocessImgaeBuffer()
+            predict_movement = self.model.predictAction(state, 0)[0]
+            self.env.render()
+            observation, reward, done, _ = self.env.step(predict_movement)
+            tot_award += reward
+            self.process_buffer.append(observation)
+            self.process_buffer = self.process_buffer[1:]
+        if save:
+            self.env.monitor.close()
+
+    def calculate_mean(self, num_samples = 100):
+        reward_list = []
+        print("Printing scores of each trial")
+        for i in range(num_samples):
+            done = False
+            tot_award = 0
+            self.env.reset()
+            while not done:
+                state = self.preprocessImgaeBuffer()
+                predict_movement = self.model.predictAction(state, 0.0)[0]
+                observation, reward, done, _ = self.env.step(predict_movement)
+                tot_award += reward
+                self.process_buffer.append(observation)
+                self.process_buffer = self.process_buffer[1:]
+            print(tot_award)
+            reward_list.append(tot_award)
+        return np.mean(reward_list), np.std(reward_list)
+
+    def load_network(self, path):
+        self.model.load_network(path)
