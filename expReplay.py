@@ -1,3 +1,5 @@
+import numpy as np
+import random
 from collections import deque
 
 class ExpReplay:
@@ -10,8 +12,7 @@ class ExpReplay:
     def GetSize(self):
         return self.Step
 
-    def addExpierience(self, OldState, Action, Reward, Done, NewState):
-        Expierience = (OldState, Action, Reward, Done, NewState)
+    def addExpierience(self, Expierience):
 
         if self.Step < self.Size
             self.Que.append(Expierience)
