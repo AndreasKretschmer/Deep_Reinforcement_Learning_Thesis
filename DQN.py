@@ -6,6 +6,8 @@ from keras.layers.convolutional import Convolution2D
 from keras.optimizers import Adam
 from keras.layers.core import Activation, Dropout, Flatten, Dense
 
+TAU = 0.01
+
 class DQN:
     def __init__(self, actionSpace, frameNumber):
         #set parameters
@@ -19,8 +21,6 @@ class DQN:
         self.target_model = self.create_model()
         self.target_model.set_weights(self.model.get_weights())
 
-        # Used to count when to update target network with main network's weights
-        self.target_update_counter = 0
 
     def create_model(self):
         model = Sequential()
@@ -44,8 +44,18 @@ class DQN:
         if rand_val < epsilon:
             opt_policy = np.random.randint(0, NUM_ACTIONS)
         return opt_policy, q_actions[0, opt_policy]
-        
 
-    # Queries main network for Q values given current observation space (environment state)
-    def get_qs(self, state):
-        return self.model.predict(np.array(state).reshape(-1, *state.shape)/255)[0]
+    def target_train(self):
+        model_weights = self.model.get_weights()
+        target_model_weights = self.target_model.get_weights()
+        for i in range(len(model_weights)):
+            target_model_weights[i] = TAU * model_weights[i] + (1 - TAU) * target_model_weights[i]
+        self.target_model.set_weights(target_model_weights)
+        
+    def save_network(self, path):
+        self.model.save(path)
+        print("Successfully saved network.")
+
+    def load_network(self, path):
+        self.model = load_model(path)
+        print("Succesfully loaded network.")
