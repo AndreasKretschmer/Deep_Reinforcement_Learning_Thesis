@@ -35,7 +35,7 @@ class DQN:
         self.target_model.set_weights(self.model.get_weights())
 
         #Init tensorboard for statistics
-        self.tensorboard = TensorBoard(log_dir="logs/{}-{}".format(self.MODEL_NAME, int(time.time())))
+        self.tensorboard = TensorBoard(log_dir="logs/{}-{}".format(self.MODEL_NAME, int(time.time())), histogram_freq=1)
 
         # Used to count when to update target network with main network's weights
         self.target_update_counter = 0
