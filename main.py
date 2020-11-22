@@ -11,23 +11,23 @@ parser.add_argument("-s", "--save", type=str, action='store', help="Specify fold
 parser.add_argument("-x", "--statistics", action='store_true', help="Specify to calculate statistics of network(such as average score on game)", required=False)
 parser.add_argument("-v", "--view", action='store_true', help="Display the network playing a game of space-invaders. Is overriden by the -s command", required=False)
 
-args = parser.parse_args()
-print(args)
+#args = parser.parse_args()
+#print(args)
 
 game_instance = SpaceInvaders()
 
-if args.load:
-    game_instance.load_network(args.load)
+#if args.load:
+#    game_instance.load_network(args.load)
 
-if args.mode == "train":
-    game_instance.train(1000000)
+#if args.mode == "train":
+game_instance.train(1000000)
 
-if args.statistics:
-    stat = game_instance.calculate_mean()
-    print("Game Statistics")
-    print(stat)
+#if args.statistics:
+#    stat = game_instance.calculate_mean()
+#    print("Game Statistics")
+#    print(stat)
 
-if args.save:
-    game_instance.simulate(path=args.save, save=True)
-elif args.view:
-    game_instance.simulate()
+#if args.save:
+#    game_instance.simulate(path=args.save, save=True)
+#elif args.view:
+#    game_instance.simulate()
