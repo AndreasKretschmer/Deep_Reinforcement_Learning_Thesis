@@ -31,7 +31,7 @@ class DQN:
         self.avg_q , self.avg_loss = 0, 0
         self.sess = tf.InteractiveSession()
         self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
-        self.LogWriter = tf.summary.FileWriter(logDir, self.sess.graph)
+        self.summary_writer = tf.summary.FileWriter(logDir, self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
         #init epsilon values
