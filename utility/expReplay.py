@@ -9,24 +9,23 @@ class ExpReplay:
         self.Step = 0
         self.Que = deque()
 
-    def GetSize(self):
+    def GetLen(self):
         return self.Step
 
-    def addExpierience(self, Expierience):
+    def addExperience(self, experience):
 
         if self.Step < self.Size:
-            self.Que.append(Expierience)
+            self.Que.append(experience)
             self.Step += 1
         else:
             self.Que.popleft()
-            self.Que.append(Expierience)
+            self.Que.append(experience)
 
     def ResetExpReplay(self):
         self.Que.clear()
         self.Step = 0
 
     def GetSampleExpierences(self, SampleSize):
-        
         ExpSamples = []
 
         if self.Step < SampleSize:

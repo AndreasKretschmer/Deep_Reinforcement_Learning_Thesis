@@ -1,0 +1,8 @@
+logs/
+.h5
+.pcy
+modelsdqn.h5
+.vscode/settings.json
+__pycache__/
+dqn/__pycache__/
+utility/__pycache__/
