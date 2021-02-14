@@ -2,7 +2,7 @@ class hyperparameters:
     ENV_NAME = 'Breakout-v0'
     RESIZE_IMAGE_SIZE = (84, 84)
     SHOW_PREVIEW = False
-
+    SAVE_LOGS_PATH = 'logs'
     SAVE_MODEL_PATH = 'models'
 
     #DQN Hyperparameters

@@ -2,7 +2,8 @@ logs/
 .h5
 .pcy
 modelsdqn.h5
-.vscode/settings.json
+.vscode/
 __pycache__/
 dqn/__pycache__/
 utility/__pycache__/
+Old/

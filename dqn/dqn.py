@@ -4,12 +4,13 @@ from keras.models import Sequential
 from keras.layers.convolutional import Conv2D
 from keras.layers.core import Activation, Dropout, Flatten, Dense
 from keras.optimizers import Adam
-from keras.callbacks import TensorBoard
+# from keras.callbacks import callbacks
 import tensorflow.keras.backend as backend
 import random
 from utility.hyperparameters import hyperparameters
 from utility.expReplay import ExpReplay
 from collections import deque
+import datetime
 
 class DQN:
     def __init__(self, ActionSpace, StateSpace):
@@ -25,10 +26,18 @@ class DQN:
 
         self.ExperienceBuffer = deque(maxlen=hyperparameters.EXP_SIZE) #init expierence replay buffer
 
+        # init parameters for Tensorboard
+        logDir = hyperparameters.SAVE_LOGS_PATH
+        self.avg_q , self.avg_loss = 0, 0
+        self.sess = tf.InteractiveSession()
+        self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
+        self.LogWriter = tf.summary.FileWriter(logDir, self.sess.graph)
+        self.sess.run(tf.global_variables_initializer())
+
+        #init epsilon values
         self.epsilon = hyperparameters.START_EPSILON
         self.min_epsilon = hyperparameters.MIN_EPSILON
         self.epsilon_decay = (self.epsilon - self.min_epsilon) / hyperparameters.EPSILON_DECAY_STEPS
-        self.avg_q , self.avg_loss = 0, 0
 
         np.random.seed(1)
         tf.set_random_seed(1)
@@ -45,10 +54,30 @@ class DQN:
         model.add(Flatten()) 
         model.add(Dense(512, activation='relu')) #fully connected layer
         model.add(Dense(self.actionSpace)) #outputlayer
-        model.compile(loss='mse', optimizer=Adam(lr=0.00001))
+        model.compile(loss='mse', optimizer=Adam(lr=0.00001) )
         model.summary()
 
         return model
+
+    def setup_summary(self):
+        episode_total_reward = tf.Variable(0.)
+        episode_avg_max_q = tf.Variable(0.)
+        episode_steps = tf.Variable(0.)
+        episode_avg_loss = tf.Variable(0.)
+
+        tf.summary.scalar('Total_Reward/Episode', episode_total_reward)
+        tf.summary.scalar('Average_Max_Q/Episode', episode_avg_max_q)
+        tf.summary.scalar('Steps/Episode', episode_steps)
+        tf.summary.scalar('Average Loss/Episode', episode_avg_loss)
+
+        summary_vars = [episode_total_reward, episode_avg_max_q,
+                        episode_steps, episode_avg_loss]
+        summary_placeholders = [tf.placeholder(tf.float32) for _ in
+                                range(len(summary_vars))]
+        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
+                      range(len(summary_vars))]
+        summary_op = tf.summary.merge_all()
+        return summary_placeholders, update_ops, summary_op
     
     def UpdateTargetNetwork(self):
         self.TargetNetwork.set_weights(self.QNetwork.get_weights())

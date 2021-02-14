@@ -21,14 +21,12 @@ class agent:
         self.total_reward = 0
         self.Steps = 0
 
-
         #Buffer that keeps the last 4 images of the states
         self.utilizer = Utility();
         self.stacked_frames = deque([np.zeros((hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1]), dtype=np.int) for i in range(hyperparameters.STACKED_FRAME_SIZE)], maxlen=4)
 
         if  os.path.isdir(hyperparameters.SAVE_MODEL_PATH):
             os.makedirs(hyperparameters.SAVE_MODEL_PATH)
-
 
     def preprocessImage(self, state, is_new_episode):  
         state = self.utilizer.Preprocess_Image(state)
@@ -87,6 +85,17 @@ class agent:
                     self.stacked_frames = new_state
 
                 if done:
+                    #update values for TensorBoard
+                    if self.Steps > hyperparameters.MIN_EXP:
+                        stats = [self.total_reward, self.model.avg_q / epsiodeStep, epsiodeStep,
+                                self.model.avg_loss / epsiodeStep]
+                        for i in range(len(stats)):
+                            self.model.sess.run(self.model.update_ops[i], feed_dict={
+                                self.model.summary_placeholders[i]: float(stats[i])
+                            })
+                        summary_str = self.model.sess.run(self.model.summary_op)
+                        self.model.summary_writer.add_summary(summary_str, episode + 1)
+
                     print("episode:", episode, 
                       "  score:", self.total_reward, 
                       "  memory length:", len(self.model.ExperienceBuffer),
