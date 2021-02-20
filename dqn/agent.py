@@ -21,25 +21,27 @@ class agent:
         self.total_reward = 0
         self.Steps = 0
 
-        #Buffer that keeps the last 4 images of the states
         self.utilizer = Utility();
-        self.stacked_frames = deque([np.zeros((hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1]), dtype=np.int) for i in range(hyperparameters.STACKED_FRAME_SIZE)], maxlen=4)
 
-        if  os.path.isdir(hyperparameters.SAVE_MODEL_PATH):
-            os.makedirs(hyperparameters.SAVE_MODEL_PATH)
+        # if  os.path.isdir(hyperparameters.SAVE_MODEL_PATH):
+        #     os.makedirs(hyperparameters.SAVE_MODEL_PATH)
 
-    def preprocessImage(self, state, is_new_episode):  
-        state = self.utilizer.Preprocess_Image(state)
+    def skipFrames(self, action, LivesAtStart):
+        totalReward = 0
 
-        if is_new_episode:
-            stacked_state = np.stack((state, state, state, state), axis=2)
-            stacked_state = np.reshape([stacked_state], (1, 84, 84, 4))
-        else:
-            #Since deque append adds t right, we can fetch rightmost element
-            stacked_state = np.reshape([state], (1, 84, 84, 1))
-            stacked_state = np.append(stacked_state, self.stacked_frames[:, :, :, :3], axis=3)
+        for _ in range(hyperparameters.STACKED_FRAME_SIZE):
+            obs, reward, done, info = self.env.step(action)
+            totalReward += reward
 
-        return stacked_state
+            if info['ale.lives'] < LivesAtStart: #check if agent lost a live
+                done = True
+                totalReward -= 1
+
+            if done:
+                break
+        
+        return obs, totalReward, done, info
+
 
     def train(self):
         
@@ -51,28 +53,36 @@ class agent:
 
             obs = self.env.reset() #get first state
 
+            #do nothing at the beginning of an epsiode 
             for _ in range(random.randint(1, hyperparameters.NO_ACTION_STEPS)):
-                obs, _, _, _ = self.env.step(1)
+                lastObs = obs
+                obs, _, _, _ = self.env.step(0)
 
-            self.stacked_frames = self.preprocessImage(obs, True)
+            StackedState = self.utilizer.GetInitialStateForEpisode(obs, lastObs)
+            # StackedState = self.preprocessImage(obs, True)
 
             while not done:
                 self.Steps += 1
                 epsiodeStep += 1
+                lastObs = obs
 
-                action = self.model.GetAction(self.stacked_frames) #get an action with an epsilon decay policy
+                action = self.model.GetAction(StackedState) #get an action with a decay epsilon greedy policy
+                
+                # obs, reward, done, info = self.env.step(action) #perform action predicted by the nn
+                obs, reward, done, info = self.skipFrames(action, LivesAtStart)
 
-                new_state, reward, done, info = self.env.step(action) #perform action predicted by the nn
+                processedObs = self.utilizer.Preprocess_Image(obs, lastObs)
+                nextStackedState = np.append(StackedState[1:, :, :], processedObs, axis=0)
+                # obs = self.preprocessImage(obs, False) #preprocess the new State
 
-                new_state = self.preprocessImage(new_state, False)
-
-                if info['ale.lives'] < LivesAtStart:
+                if info['ale.lives'] < LivesAtStart: #check if agent lost a live
                     dead = True
                     LivesAtStart = info['ale.lives']
 
-                self.model.UpdateExperienceBuffer(self.stacked_frames, action, reward, dead, new_state) #save the experience in the expierience buffer
+                self.model.UpdateExperienceBuffer(StackedState, action, reward, dead, nextStackedState) #save the experience in the expierience buffer
 
                 self.model.UpdateNetworkFromExperience() #trains the network with samples from the expirience buffer
+
                 self.total_reward += reward
 
                 if self.Steps % hyperparameters.UPDATE_TARGET_EVERY == 0:
@@ -82,7 +92,7 @@ class agent:
                 if dead:
                     dead = False
                 else:
-                    self.stacked_frames = new_state
+                    StackedState = nextStackedState
 
                 if done:
                     #update values for TensorBoard

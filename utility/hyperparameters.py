@@ -2,7 +2,7 @@ class hyperparameters:
     ENV_NAME = 'Breakout-v0'
     RESIZE_IMAGE_SIZE = (84, 84)
     SHOW_PREVIEW = False
-    SAVE_LOGS_PATH = 'logs'
+    SAVE_LOGS_PATH = '.\logs'
     SAVE_MODEL_PATH = 'models'
 
     #DQN Hyperparameters
@@ -15,7 +15,7 @@ class hyperparameters:
     MIN_EPSILON = 0.1
     MIN_EXP = 50000
     LEARNINGRATE = 0.99
-    NO_ACTION_STEPS = 32
+    NO_ACTION_STEPS = 30
     UPDATE_TARGET_EVERY = 10000
     DQN_MODEL_NAME = 'dqn.h5'
 

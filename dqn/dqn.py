@@ -3,12 +3,11 @@ import tensorflow as tf
 from keras.models import Sequential
 from keras.layers.convolutional import Conv2D
 from keras.layers.core import Activation, Dropout, Flatten, Dense
-from keras.optimizers import Adam
+from keras.optimizers import RMSprop
 # from keras.callbacks import callbacks
 import tensorflow.keras.backend as backend
 import random
 from utility.hyperparameters import hyperparameters
-from utility.expReplay import ExpReplay
 from collections import deque
 import datetime
 
@@ -30,7 +29,7 @@ class DQN:
         logDir = hyperparameters.SAVE_LOGS_PATH
         self.avg_q , self.avg_loss = 0, 0
         self.sess = tf.InteractiveSession()
-        self.summary_placeholders, self.update_ops, self.summary_op = self.setup_summary()
+        self.summaryPlaceholders, self.update_ops, self.summary_op = self.setup_summary()
         self.summary_writer = tf.summary.FileWriter(logDir, self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
@@ -54,12 +53,13 @@ class DQN:
         model.add(Flatten()) 
         model.add(Dense(512, activation='relu')) #fully connected layer
         model.add(Dense(self.actionSpace)) #outputlayer
-        model.compile(loss='mse', optimizer=Adam(lr=0.00001) )
+        model.compile(loss='mse', optimizer=RMSprop(lr=0.00025) )
         model.summary()
 
         return model
 
     def setup_summary(self):
+        #setups the variables for Tensorboard
         episode_total_reward = tf.Variable(0.)
         episode_avg_max_q = tf.Variable(0.)
         episode_steps = tf.Variable(0.)
@@ -70,19 +70,21 @@ class DQN:
         tf.summary.scalar('Steps/Episode', episode_steps)
         tf.summary.scalar('Average Loss/Episode', episode_avg_loss)
 
-        summary_vars = [episode_total_reward, episode_avg_max_q,
+        summaryVariables = [episode_total_reward, episode_avg_max_q,
                         episode_steps, episode_avg_loss]
-        summary_placeholders = [tf.placeholder(tf.float32) for _ in
-                                range(len(summary_vars))]
-        update_ops = [summary_vars[i].assign(summary_placeholders[i]) for i in
-                      range(len(summary_vars))]
+        summaryPlaceholders = [tf.placeholder(tf.float32) for _ in
+                                range(len(summaryVariables))]
+        summaryUpdate = [summaryVariables[i].assign(summaryPlaceholders[i]) for i in
+                      range(len(summaryVariables))]
         summary_op = tf.summary.merge_all()
-        return summary_placeholders, update_ops, summary_op
+        return summaryPlaceholders, summaryUpdate, summary_op
     
     def UpdateTargetNetwork(self):
+        #sets the TargetNetwork = QNetwork
         self.TargetNetwork.set_weights(self.QNetwork.get_weights())
 
     def UpdateExperienceBuffer(self, state, action, reward, done, nextState):
+        #add an experience to the experience buffer
         self.ExperienceBuffer.append((state, action, reward, done, nextState))
 
     def GetAction(self, State):
@@ -96,11 +98,13 @@ class DQN:
         
 
     def UpdateEpsilon(self):
+        #updates the epsilon 
         self.epsilon -= self.epsilon_decay
         self.epsilon = max(self.min_epsilon, self.epsilon)
 
     def SaveNetwork(self):
-        self.QNetwork.save(hyperparameters.SAVE_MODEL_PATH + hyperparameters.DQN_MODEL_NAME)
+        #save the model parameters
+        self.QNetwork.save(hyperparameters.SAVE_MODEL_PATH + '/' + hyperparameters.DQN_MODEL_NAME)
         print("Successfully saved network")
 
     def UpdateNetworkFromExperience(self):
@@ -112,23 +116,22 @@ class DQN:
 
         expSample = random.sample(self.ExperienceBuffer, hyperparameters.EXP_SAMPLE_SIZE) #get samples from the experience buffer
 
-        # SampleSize = s_Sample.shape[0] 
-        Target = np.zeros((hyperparameters.EXP_SAMPLE_SIZE,self.actionSpace))#init traget q array
-        #expStates = np.zeros((hyperparameters.EXP_SAMPLE_SIZE, self.StateSpace[0], self.StateSpace[1], self.FrameStacks))
+        #init arrays for the nn update
+        Target = np.zeros((hyperparameters.EXP_SAMPLE_SIZE,self.actionSpace))
         expStates = np.zeros((hyperparameters.EXP_SAMPLE_SIZE, self.StateSpace[0], self.StateSpace[1], self.FrameStacks))
         expNextStates = np.zeros((hyperparameters.EXP_SAMPLE_SIZE, self.StateSpace[0], self.StateSpace[1], self.FrameStacks))
         expAction, expReward, expDone = [],[],[]
 
         for i in range(hyperparameters.EXP_SAMPLE_SIZE):
-            expStates[i] = expSample[i][0]
-            expNextStates[i] = expSample[i][4]
+            expStates[i] = np.float32(expSample[i][0] /255.0)
+            expNextStates[i] = np.float32(expSample[i][4] / 255.0)
             expAction.append(expSample[i][1])
             expReward.append(expSample[i][2])
             expDone.append(expSample[i][3])
 
         TargetQs = self.TargetNetwork.predict(expNextStates) #get qs of next state like in q learning
 
-        # for i in range(SampleSize):
+        #creaate Array with Target Q-Values from the Target Network for Training
         for i in range(hyperparameters.EXP_SAMPLE_SIZE):
             if expDone[i]: #Terminal State
                 Target[i][expAction[i]] = expReward[i]

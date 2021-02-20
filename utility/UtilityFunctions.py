@@ -8,11 +8,18 @@ class Utility():
     def __init__(self):
         pass
     
-    def Preprocess_Image(self, state):
+    def Preprocess_Image(self, state, lastState):
         # Crop and resize the image
-        img = np.uint8(resize(rgb2gray(state), hyperparameters.RESIZE_IMAGE_SIZE, mode='constant') * 255)
+        img = np.maximum(state, lastState)
+        img = np.uint8(resize(rgb2gray(img), hyperparameters.RESIZE_IMAGE_SIZE) * 255)
+        return np.reshape(img, (1, hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1]))
 
-        return img
+    def GetInitialStateForEpisode(self, state, lastState):
+        img = np.maximum(state, lastState)
+        img = np.uint8(resize(rgb2gray(img), hyperparameters.RESIZE_IMAGE_SIZE) * 255)
+        stackedstate = [img for _ in range(hyperparameters.STACKED_FRAME_SIZE)]
+        return np.stack(stackedstate, axis=0)
+
 
 
     
