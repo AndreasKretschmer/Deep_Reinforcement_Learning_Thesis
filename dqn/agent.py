@@ -26,9 +26,9 @@ class agent:
     def train(self):  
         
         for episode in tqdm(range(1, hyperparameters.MAX_EPISODES_DQN + 1), ascii=True, unit='episode'): 
+            #initialize variables
             epsiodeStep = 0
-            dead = False
-            done = False
+            dead, done = False, False
             LivesAtStart = self.max_lives
             StackedState = deque([np.zeros((hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1]), dtype=np.uint8) for i in range(hyperparameters.STACKED_FRAME_SIZE)], maxlen=4)
 
@@ -36,26 +36,21 @@ class agent:
 
             #do nothing at the beginning of an epsiode 
             for _ in range(random.randint(1, hyperparameters.NO_ACTION_STEPS)):
-                lastObs = obs
                 obs, _, _, _ = self.env.step(0)
 
             obs, StackedState = self.utilizer.GetInitialStackedState(StackedState, obs)
-            # StackedState = self.utilizer.GetInitialStateForEpisode(obs, lastObs)
-            # StackedState = self.preprocessImage(obs, True)
 
             while not done:
                 self.Steps += 1
                 epsiodeStep += 1
-                lastObs = obs
 
                 action = self.model.GetAction(obs) #get an action with a decay epsilon greedy policy
                 
-                # obs, reward, done, info = self.env.step(action) #perform action predicted by the nn
+                #perform action predicted by the nn
                 newObs, reward, done, info = self.env.step(action)
+
+                #preprocess and stack new observation
                 newObs, StackedState = self.utilizer.StackFrames(StackedState, newObs)
-                # processedObs = self.utilizer.Preprocess_Image(obs, lastObs)
-                # nextStackedState = np.append(StackedState[:, :, 1:], processedObs, axis=2)
-                # obs = self.preprocessImage(obs, False) #preprocess the new State
 
                 if info['ale.lives'] < LivesAtStart: #check if agent lost a live
                     dead = True
@@ -69,11 +64,12 @@ class agent:
                 if self.Steps % hyperparameters.SKIP_FRAMES == 0:
                     self.model.UpdateNetworkFromExperience() #trains the network with samples from the expirience buffer
 
-
+                #update the target network after given steps
                 if self.Steps % hyperparameters.UPDATE_TARGET_EVERY == 0:
                     self.model.UpdateTargetNetwork()
                     self.model.SaveNetwork()
 
+                #if agent loses the ball and still has lives left => get new initial state
                 if dead:
                     dead = False
                     obs, StackedState = self.utilizer.GetInitialStackedState(StackedState, obs)
@@ -92,6 +88,7 @@ class agent:
                         summary_str = self.model.sess.run(self.model.summary_op)
                         self.model.summary_writer.add_summary(summary_str, episode + 1)
 
+                    #print stats for debugging
                     print("episode:", episode, 
                       "  score:", self.total_reward, 
                       "  memory length:", len(self.model.ExperienceBuffer),
