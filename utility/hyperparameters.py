@@ -24,9 +24,10 @@ class hyperparameters:
     #A3C Hyperparameters
     ACTOR_LEARNINGRATE = 0.00025
     CRITIC_LEARNINGRATE = 0.00025
-    NUMBER_WORKERS = 1
+    NUMBER_WORKERS = 8
     MAX_EPISODES_A3C = 50000
     ACTION_SIZE = 4
+    STEP_MAX = 20
 
     def __init__(self):
         pass
