@@ -90,12 +90,12 @@ class DQN:
     def GetAction(self, State):
         State = np.float32(State / 255.0)
         q_value = self.QNetwork.predict(State) #get q values for actions from q network
-        self.avg_q += np.amax(q_value) #select action greedy (with the highest q value)
-        
+        self.avg_q += np.amax(q_value) #log max q value for Tensorboard
+
         if np.random.random() <= self.epsilon: #e-greedy decay policy
             return np.random.randint(self.actionSpace) #take random action 
         else:
-            return np.argmax(q_value[0])
+            return np.argmax(q_value[0]) #select action greedy (with the highest q value)
         
 
     def UpdateEpsilon(self):
