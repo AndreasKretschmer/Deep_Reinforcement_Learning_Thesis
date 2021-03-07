@@ -26,11 +26,11 @@ class DQN:
         self.ExperienceBuffer = deque(maxlen=hyperparameters.EXP_SIZE) #init expierence replay buffer
 
         # init parameters for Tensorboard
-        logDir = hyperparameters.SAVE_LOGS_PATH
+        # logDir = hyperparameters.SAVE_LOGS_PATH
         self.avg_q , self.avg_loss = 0, 0
         self.sess = tf.InteractiveSession()
         self.summaryPlaceholders, self.update_ops, self.summary_op = self.setupSummary()
-        self.summary_writer = tf.summary.FileWriter(logDir, self.sess.graph)
+        self.summary_writer = tf.summary.FileWriter(hyperparameters.SAVE_LOGS_PATH, self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
         #init epsilon values
@@ -47,9 +47,9 @@ class DQN:
     def CreateNetwork(self):
         #creates the network for the model
         model = Sequential()
-        model.add(Conv2D(32, 8, 8, subsample=(4, 4), activation='relu', input_shape=self.inputShape)) #input layer of shape (84,84,4) filter = 8x8
-        model.add(Conv2D(64, 4, 4, subsample=(2, 2), activation='relu')) #first conv layer with filter 4x4
-        model.add(Conv2D(64, 3, 3, subsample=(1, 1), activation='relu')) #second conv layer with filter 3x3
+        model.add(Conv2D(32, (8, 8), strides=(4, 4), activation='relu', input_shape=self.inputShape)) #input layer of shape (84,84,4) filter = 8x8
+        model.add(Conv2D(64, (4, 4), strides=(2, 2), activation='relu')) #first conv layer with filter 4x4
+        model.add(Conv2D(64, (3, 3), strides=(1, 1), activation='relu')) #second conv layer with filter 3x3
         model.add(Flatten()) 
         model.add(Dense(512, activation='relu')) #fully connected layer
         model.add(Dense(self.actionSpace)) #outputlayer
@@ -88,12 +88,13 @@ class DQN:
         self.ExperienceBuffer.append((state, action, reward, done, nextState))
 
     def GetAction(self, State):
-        State = np.array([np.float32(State / 255.0)])
+        State = np.float32(State / 255.0)
+        q_value = self.QNetwork.predict(State) #get q values for actions from q network
+        self.avg_q += np.amax(q_value) #select action greedy (with the highest q value)
+        
         if np.random.random() <= self.epsilon: #e-greedy decay policy
             return np.random.randint(self.actionSpace) #take random action 
         else:
-            q_value = self.QNetwork.predict(State) #get q values for actions from q network
-            self.avg_q += np.amax(q_value) #select action greedy (with the highest q value)
             return np.argmax(q_value[0])
         
 
@@ -122,6 +123,7 @@ class DQN:
         expNextStates = np.zeros((hyperparameters.EXP_SAMPLE_SIZE, self.StateSpace[0], self.StateSpace[1], self.FrameStacks))
         expAction, expReward, expDone = [],[],[]
 
+        #fill arrays for calculation
         for i in range(hyperparameters.EXP_SAMPLE_SIZE):
             expStates[i] = np.float32(expSample[i][0] /255.0)
             expNextStates[i] = np.float32(expSample[i][4] / 255.0)

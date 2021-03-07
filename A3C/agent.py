@@ -1,11 +1,6 @@
-import gym
 import time
-import random
 import threading
-import numpy as np
 import tensorflow as tf
-from skimage.color import rgb2gray
-from skimage.transform import resize
 from keras.models import Model
 from keras.optimizers import RMSprop
 from keras.layers import Dense, Flatten, Input
@@ -24,12 +19,13 @@ class agent:
         self.actorLearningrate = hyperparameters.ACTOR_LEARNINGRATE
         self.criticLearningrate = hyperparameters.CRITIC_LEARNINGRATE
         self.threads = hyperparameters.NUMBER_WORKERS
+        self.LearningRate = hyperparameters.LEARNINGRATE
 
         # create model for actor and critic network
         self.actor, self.critic = self.CreateNetwork()
 
         # method for training actor and critic network
-        self.optimizer = [self.actor_optimizer(), self.critic_optimizer()]
+        self.optimizer = [self.ActorOptimizer(), self.CriticOptimizer()]
 
         self.sess = tf.InteractiveSession()
         K.set_session(self.sess)
@@ -40,7 +36,7 @@ class agent:
 
     def train(self):
         agents = [Worker(self.actionSpace, self.StateSpace, [self.actor, self.critic], self.sess, self.optimizer,
-                        hyperparameters.LEARNINGRATE, [self.summary_op, self.summary_placeholders,
+                        self.LearningRate, [self.summary_op, self.summary_placeholders,
                         self.update_ops, self.summary_writer], i) for i in range(self.threads)]
 
         for agent in agents:
@@ -53,10 +49,10 @@ class agent:
 
     def CreateNetwork(self):
         input = Input(shape=self.StateSpace)
-        conv1 = Conv2D(16, 8, 8, subsample=(4, 4), activation='relu')(input)
-        conv2 = Conv2D(32, 4, 4, subsample=(2, 2), activation='relu')(conv1)
-        conv3 = Flatten()(conv2)
-        fullyConnected = Dense(256, activation='relu')(conv3)
+        conv = Conv2D(16, (8, 8), strides=(4, 4), activation='relu')(input)
+        conv = Conv2D(32, (4, 4), strides=(2, 2), activation='relu')(conv)
+        conv = Flatten()(conv)
+        fullyConnected = Dense(256, activation='relu')(conv)
         policy = Dense(self.actionSpace, activation='softmax')(fullyConnected)
         value = Dense(1, activation='linear')(fullyConnected)
 
@@ -71,7 +67,7 @@ class agent:
 
         return actor, critic
 
-    def actor_optimizer(self):
+    def ActorOptimizer(self):
         action = K.placeholder(shape=[None, self.actionSpace])
         advantages = K.placeholder(shape=[None, ])
 
@@ -91,7 +87,7 @@ class agent:
 
         return train
 
-    def critic_optimizer(self):
+    def CriticOptimizer(self):
         discounted_reward = K.placeholder(shape=(None, ))
 
         value = self.critic.output
@@ -102,7 +98,6 @@ class agent:
         updates = optimizer.get_updates(self.critic.trainable_weights, [], loss)
         train = K.function([self.critic.input, discounted_reward], [loss], updates=updates)
         return train
-
 
     def SaveNetwork(self, name):
         self.actor.save_weights(name + "_actor.h5")

@@ -2,55 +2,81 @@ import gym
 import numpy as np
 from collections import deque
 from utility.hyperparameters import hyperparameters
-from utility.UtilityFunctions import Utility
+from utility.PreProcessing import PreProcessing
 from dqn.dqn import DQN as DQNModel
 from tqdm import tqdm
 import random
 import os
+from skimage.color import rgb2gray
+from skimage.transform import resize
 
+def PreProcess(newObs, observe):
+    observe = observe[25:201:]
+    newObs = newObs[25:201:]
+    PreProcessedObs = np.maximum(newObs, observe)
+    PreProcessedObs = np.uint8(resize(rgb2gray(PreProcessedObs), (84, 84), mode='constant') * 255)
+    return PreProcessedObs
+    
 class agent:
     def __init__(self):
         #creates the environment
         self.env = gym.make(hyperparameters.ENV_NAME)
-        self.max_lives = self.env.unwrapped.ale.lives()
+        self.maxLives = self.env.unwrapped.ale.lives()
+        self.resizeShape = (hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1], hyperparameters.STACKED_FRAME_SIZE)
 
         #creates the nn model
-        self.model = DQNModel(self.env.action_space.n, (hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1], hyperparameters.STACKED_FRAME_SIZE))
+        self.model = DQNModel(hyperparameters.ACTION_SIZE, self.resizeShape)
 
         #values to track the performance of the agent
         self.total_reward = 0
         self.Steps = 0
 
-        self.utilizer = Utility();
+        # self.PreProcessing = PreProcessing();
 
     def train(self):  
         
         for episode in tqdm(range(1, hyperparameters.MAX_EPISODES_DQN + 1), ascii=True, unit='episode'): 
             #initialize variables
-            epsiodeStep = 0
+            epsiodeStep, realAction = 0, 0
             dead, done = False, False
-            LivesAtStart = self.max_lives
-            StackedState = deque([np.zeros((hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1]), dtype=np.uint8) for i in range(hyperparameters.STACKED_FRAME_SIZE)], maxlen=4)
+            LivesAtStart = self.maxLives
 
             obs = self.env.reset() #get first state
+            newObs = obs
 
             #do nothing at the beginning of an epsiode 
             for _ in range(random.randint(1, hyperparameters.NO_ACTION_STEPS)):
-                obs, _, _, _ = self.env.step(0)
+                obs = newObs
+                newObs, _, _, _ = self.env.step(1)
 
-            obs, StackedState = self.utilizer.GetInitialStackedState(StackedState, obs)
+            PreProcessedObs = PreProcess(newObs, obs)
+            FrameBuffer = np.stack((PreProcessedObs, PreProcessedObs, PreProcessedObs, PreProcessedObs), axis=2)
+            FrameBuffer = np.reshape([FrameBuffer], (1, 84, 84, 4))    
 
             while not done:
                 self.Steps += 1
                 epsiodeStep += 1
+                obs = newObs
 
-                action = self.model.GetAction(obs) #get an action with a decay epsilon greedy policy
-                
+                action = self.model.GetAction(FrameBuffer) #get an action with a decay epsilon greedy policy
+                if hyperparameters.ACTION_SIZE < 4:
+                    realAction = action + 1 #play without action 0
+                else:
+                    realAction = action #play with action 0
+
+                #start a new episode
+                if dead:
+                    dead = False
+                    realAction = 1 # start new episode directly
+                    action = 0
+
                 #perform action predicted by the nn
-                newObs, reward, done, info = self.env.step(action)
+                newObs, reward, done, info = self.env.step(realAction)
 
                 #preprocess and stack new observation
-                newObs, StackedState = self.utilizer.StackFrames(StackedState, newObs)
+                newPreProcessedObs = PreProcess(newObs, obs)
+                newPreProcessedObs = np.reshape([newPreProcessedObs], (1, 84, 84, 1))
+                newFrameBuffer = np.append(newPreProcessedObs, FrameBuffer[:, :, :, :3], axis=3)
 
                 if info['ale.lives'] < LivesAtStart: #check if agent lost a live
                     dead = True
@@ -59,10 +85,10 @@ class agent:
                 self.total_reward += reward
                 reward = np.clip(reward, -1., 1.)
                  
-                self.model.UpdateExperienceBuffer(obs, action, reward, dead, newObs) #save the experience in the expierience buffer
+                self.model.UpdateExperienceBuffer(FrameBuffer, action, reward, dead, newFrameBuffer) #save the experience in the expierience buffer
 
-                if self.Steps % hyperparameters.SKIP_FRAMES == 0:
-                    self.model.UpdateNetworkFromExperience() #trains the network with samples from the expirience buffer
+                # if self.Steps % hyperparameters.SKIP_FRAMES == 0:
+                self.model.UpdateNetworkFromExperience() #trains the network with samples from the expirience buffer
 
                 #update the target network after given steps
                 if self.Steps % hyperparameters.UPDATE_TARGET_EVERY == 0:
@@ -71,10 +97,10 @@ class agent:
 
                 #if agent loses the ball and still has lives left => get new initial state
                 if dead:
-                    dead = False
-                    obs, StackedState = self.utilizer.GetInitialStackedState(StackedState, obs)
+                    FrameBuffer = np.stack((newPreProcessedObs, newPreProcessedObs, newPreProcessedObs, newPreProcessedObs), axis=2)
+                    FrameBuffer = np.reshape([FrameBuffer], (1, 84, 84, 4))
                 else:
-                    obs = newObs
+                    FrameBuffer = newFrameBuffer
 
                 if done:
                     #update values for TensorBoard
