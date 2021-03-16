@@ -3,7 +3,7 @@ import numpy as np
 from collections import deque
 from utility.hyperparameters import hyperparameters
 from utility.PreProcessing import PreProcessing
-from dqn.dqn import DQN as DQNModel
+from dqn.dqn import DQNModel as DQNModel
 from tqdm import tqdm
 import random
 import os

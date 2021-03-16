@@ -19,7 +19,7 @@ class agent:
         self.actorLearningrate = hyperparameters.ACTOR_LEARNINGRATE
         self.criticLearningrate = hyperparameters.CRITIC_LEARNINGRATE
         self.threads = hyperparameters.NUMBER_WORKERS
-        self.LearningRate = hyperparameters.LEARNINGRATE
+        self.DiscountFactor = hyperparameters.DISCOUNTFACTOR
 
         # create model for actor and critic network
         self.actor, self.critic = self.CreateNetwork()
@@ -36,7 +36,7 @@ class agent:
 
     def train(self):
         agents = [Worker(self.actionSpace, self.StateSpace, [self.actor, self.critic], self.sess, self.optimizer,
-                        self.LearningRate, [self.summary_op, self.summary_placeholders,
+                        self.DiscountFactor, [self.summary_op, self.summary_placeholders,
                         self.update_ops, self.summary_writer], i) for i in range(self.threads)]
 
         for agent in agents:

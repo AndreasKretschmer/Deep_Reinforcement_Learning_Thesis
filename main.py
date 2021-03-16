@@ -9,19 +9,19 @@ from A3C.agent import agent as A3CGlobalAgent
 # print(args)
 
 # if args.model == 'DQN':
-agent = DQNAgent()
+# agent = DQNAgent()
 
 #     if args.mode == 'train':
-agent.train()
+# agent.train()
     
 #     if args.mode == 'test':
 #         pass
 
-# if args.model == 'DQN':
-# agent = A3CGlobalAgent()
+# if args.model == 'A3C':
+agent = A3CGlobalAgent()
 
     # if args.mode == 'train':
-# agent.train()
+agent.train()
     
     # if args.mode == 'test':
     #     pass

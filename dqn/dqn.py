@@ -11,7 +11,7 @@ from utility.hyperparameters import hyperparameters
 from collections import deque
 import datetime
 
-class DQN:
+class DQNModel:
     def __init__(self, ActionSpace, StateSpace):
         self.actionSpace = ActionSpace #number of possible actions
         self.StateSpace = StateSpace
@@ -53,7 +53,7 @@ class DQN:
         model.add(Flatten()) 
         model.add(Dense(512, activation='relu')) #fully connected layer
         model.add(Dense(self.actionSpace)) #outputlayer
-        model.compile(loss='mse', optimizer=RMSprop(lr=0.00025, rho=0.95, epsilon=0.01) )
+        model.compile(loss='mse', optimizer=RMSprop(lr=hyperparameters.RMS_LR, rho=hyperparameters.RMS_RHO, epsilon=hyperparameters.RMS_EPS) )
         model.summary()
 
         return model
@@ -117,7 +117,7 @@ class DQN:
 
         expSample = random.sample(self.ExperienceBuffer, hyperparameters.EXP_SAMPLE_SIZE) #get samples from the experience buffer
 
-        #init arrays for the nn update
+        #init arrays for the training update
         Target = np.zeros((hyperparameters.EXP_SAMPLE_SIZE,self.actionSpace))
         expStates = np.zeros((hyperparameters.EXP_SAMPLE_SIZE, self.StateSpace[0], self.StateSpace[1], self.FrameStacks))
         expNextStates = np.zeros((hyperparameters.EXP_SAMPLE_SIZE, self.StateSpace[0], self.StateSpace[1], self.FrameStacks))
@@ -138,7 +138,7 @@ class DQN:
             if expDone[i]: #Terminal State
                 Target[i][expAction[i]] = expReward[i]
             else:
-                Target[i][expAction[i]] = expReward[i] + hyperparameters.LEARNINGRATE * np.amax(TargetQs[i])
+                Target[i][expAction[i]] = expReward[i] + hyperparameters.DISCOUNTFACTOR * np.amax(TargetQs[i])
 
         loss = self.QNetwork.train_on_batch(expStates, Target) #performs the gradient update
         self.avg_loss += loss
