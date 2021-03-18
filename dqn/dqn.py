@@ -4,7 +4,6 @@ from keras.models import Sequential
 from keras.layers.convolutional import Conv2D
 from keras.layers.core import Activation, Dropout, Flatten, Dense
 from keras.optimizers import RMSprop
-# from keras.callbacks import callbacks
 import tensorflow.keras.backend as backend
 import random
 from utility.hyperparameters import hyperparameters
@@ -18,8 +17,8 @@ class DQNModel:
         self.FrameStacks = hyperparameters.STACKED_FRAME_SIZE
         self.inputShape = (self.StateSpace[0], self.StateSpace[1], self.FrameStacks)
 
-        self.QNetwork = self.CreateNetwork() #create action-value network
-        self.TargetNetwork = self.CreateNetwork(); #create target-network
+        self.QNetwork = self.CreateModel() #create action-value network
+        self.TargetNetwork = self.CreateModel(); #create target-network
 
         self.UpdateTargetNetwork() #Initialize target-network with initial q-network parameters
 
@@ -44,7 +43,7 @@ class DQNModel:
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.2)
         backend.set_session(tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)))
 
-    def CreateNetwork(self):
+    def CreateModel(self):
         #creates the network for the model
         model = Sequential()
         model.add(Conv2D(32, (8, 8), strides=(4, 4), activation='relu', input_shape=self.inputShape)) #input layer of shape (84,84,4) filter = 8x8
@@ -103,10 +102,10 @@ class DQNModel:
         self.epsilon -= self.epsilon_decay
         self.epsilon = max(self.min_epsilon, self.epsilon)
 
-    def SaveNetwork(self):
+    def SaveModel(self):
         #save the model parameters
         self.QNetwork.save(hyperparameters.SAVE_MODEL_PATH + '/' + hyperparameters.DQN_MODEL_NAME)
-        print("Successfully saved network")
+        print("Successfully saved model")
 
     def UpdateNetworkFromExperience(self):
         # first gather some experience

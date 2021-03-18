@@ -83,7 +83,6 @@ class agent:
                     LivesAtStart = info['ale.lives']
 
                 self.total_reward += reward
-                reward = np.clip(reward, -1., 1.)
                  
                 self.model.UpdateExperienceBuffer(FrameBuffer, action, reward, dead, newFrameBuffer) #save the experience in the expierience buffer
 
@@ -93,7 +92,7 @@ class agent:
                 #update the target network after given steps
                 if self.Steps % hyperparameters.UPDATE_TARGET_EVERY == 0:
                     self.model.UpdateTargetNetwork()
-                    self.model.SaveNetwork()
+                    self.model.SaveModel()
 
                 #if agent loses the ball and still has lives left => get new initial state
                 if dead:
