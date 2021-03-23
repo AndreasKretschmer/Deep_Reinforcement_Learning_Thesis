@@ -17,7 +17,7 @@ def PreProcess(newObs, observe):
     PreProcessedObs = np.uint8(resize(rgb2gray(PreProcessedObs), (84, 84), mode='constant') * 255)
     return PreProcessedObs
     
-class agent:
+class DQNAgent:
     def __init__(self):
         #creates the environment
         self.env = gym.make(hyperparameters.ENV_NAME)

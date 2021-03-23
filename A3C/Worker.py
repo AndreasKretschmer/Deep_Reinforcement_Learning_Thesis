@@ -206,8 +206,8 @@ class Worker(threading.Thread):
 
     def GetAction(self, State):
         State = np.float32(State / 255.0)
-        policy = self.local_actor.predict(State)[0]
-        ActionIdx = np.random.choice(self.actionSpace, 1, p=policy)[0]
+        policy = self.local_actor.predict(State)[0] # get action from current policy
+        ActionIdx = np.random.choice(self.actionSpace, 1, p=policy)[0] # select a possible action with propapility policy[0]
 
         return ActionIdx
 

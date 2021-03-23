@@ -9,7 +9,7 @@ from keras import backend as K
 from A3C.Worker import Worker
 from utility.hyperparameters import hyperparameters
 
-class agent:
+class A3CAgent:
     def __init__(self):
         # environment settings
         self.StateSpace = (hyperparameters.RESIZE_IMAGE_SIZE[0], hyperparameters.RESIZE_IMAGE_SIZE[1], hyperparameters.STACKED_FRAME_SIZE)
@@ -22,7 +22,7 @@ class agent:
         self.DiscountFactor = hyperparameters.DISCOUNTFACTOR
 
         # create model for actor and critic network
-        self.actor, self.critic = self.CreateNetwork()
+        self.actor, self.critic = self.CreateModel()
 
         # method for training actor and critic network
         self.optimizer = [self.ActorOptimizer(), self.CriticOptimizer()]
@@ -45,9 +45,9 @@ class agent:
 
         while True:
             time.sleep(60*10)
-            self.SaveNetwork("./models/breakout_a3c")
+            self.SaveModel("./models/breakout_a3c")
 
-    def CreateNetwork(self):
+    def CreateModel(self):
         input = Input(shape=self.StateSpace)
         conv = Conv2D(16, (8, 8), strides=(4, 4), activation='relu')(input)
         conv = Conv2D(32, (4, 4), strides=(2, 2), activation='relu')(conv)
@@ -99,10 +99,10 @@ class agent:
         train = K.function([self.critic.input, discounted_reward], [loss], updates=updates)
         return train
 
-    def SaveNetwork(self, name):
+    def SaveModel(self, name):
         self.actor.save_weights(name + "_actor.h5")
         self.critic.save_weights(name + '_critic.h5')
-        print("Successfully saved network")
+        print("Successfully saved model")
 
     def SetupSummary(self):
         episode_total_reward = tf.Variable(0.)
