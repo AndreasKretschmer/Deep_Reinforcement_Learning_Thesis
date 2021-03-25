@@ -23,7 +23,7 @@ global Episode
 Episode = 0
 
 class Worker(threading.Thread):
-    def __init__(self, actionSpace, stateSpace, model, sess, optimizer, discFactor, summary_ops, threadNo):
+    def __init__(self, actionSpace, stateSpace, model, sess, optimizer, discFactor, summary_ops, threadNo, eval):
         threading.Thread.__init__(self)
 
         #init training variables
@@ -33,7 +33,6 @@ class Worker(threading.Thread):
         self.states, self.actions, self.rewards = [],[],[] #buffer to store last transitions
         self.env = gym.make(hyperparameters.ENV_NAME) #make local environment for this thread
         self.maxLives = self.env.unwrapped.ale.lives()
-
 
         self.actor, self.critic = model # assign global model
         self.local_actor, self.local_critic = self.BuildLocalModel() #init local model for this thread
@@ -48,6 +47,7 @@ class Worker(threading.Thread):
         self.total_reward = 0
         self.Steps = 0
         self.threadNo = threadNo
+        self.Evaluate = eval
 
         # StepMax => number of steps for update of the model
         self.StepMax = hyperparameters.STEP_MAX
@@ -76,9 +76,14 @@ class Worker(threading.Thread):
         return actor, critic
 
     def run(self):
+        if self.Evaluate:
+            self.Eval()
+        else:
+            self.train()
+
+    def train():
         global Episode
         self.Steps = 0
-
         while Episode < hyperparameters.MAX_EPISODES_A3C:
             #initialize variables
             epsiodeStep, self.total_reward = 0, 0
@@ -222,4 +227,92 @@ class Worker(threading.Thread):
     def UpdateLocalModel(self):
         self.local_actor.set_weights(self.actor.get_weights())
         self.local_critic.set_weights(self.critic.get_weights())
+    
+    def Eval(self):
+        global Episode
+        self.Steps = 0
+        while Episode < 1001:
+            #initialize variables
+            epsiodeStep, self.total_reward = 0, 0
+            dead, done = False, False
+            LivesAtStart = self.maxLives
+
+            obs = self.env.reset() #get first state
+            newObs = obs
+
+            #do nothing at the beginning of an epsiode - idea of Deepmind
+            for _ in range(random.randint(1, hyperparameters.NO_ACTION_STEPS)):
+                obs = newObs
+                newObs, _, _, _ = self.env.step(1)
+
+            PreProcessedObs = PreProcess(newObs, obs)
+            FrameBuffer = np.stack((PreProcessedObs, PreProcessedObs, PreProcessedObs, PreProcessedObs), axis=2)
+            FrameBuffer = np.reshape([FrameBuffer], (1, 84, 84, 4))            
+
+            while not done:
+                self.env.render()
+                self.Steps += 1
+                epsiodeStep += 1
+                obs = newObs
+
+                # get action for the current FrameBuffer and go one step in environment
+                action = self.GetAction(FrameBuffer)
+
+                if hyperparameters.ACTION_SIZE < 4:
+                    realAction = action + 1 #play without action 0
+                else:
+                    realAction = action #play with action 0
+
+                #start a new episode if agent died last step
+                if dead:
+                    dead = False
+                    realAction = 1
+                    action = 0
+
+                newObs, reward, done, info = self.env.step(realAction) #perform Action
+
+                newPreProcessedObs = PreProcess(newObs, obs)
+                newPreProcessedObs = np.reshape([newPreProcessedObs], (1, 84, 84, 1))
+                newFrameBuffer = np.append(newPreProcessedObs, FrameBuffer[:, :, :, :3], axis=3)
+
+                self.PropActMaxAvg += np.amax(self.actor.predict(np.float32(FrameBuffer / 255.)))
+
+                if LivesAtStart > info['ale.lives']:
+                    dead = True
+                    LivesAtStart = info['ale.lives']
+
+                self.total_reward += reward
+
+                #if agent loses the ball and still has lives left => get new initial state
+                if dead:
+                    FrameBuffer = np.stack((newPreProcessedObs, newPreProcessedObs, newPreProcessedObs, newPreProcessedObs), axis=2)
+                    FrameBuffer = np.reshape([FrameBuffer], (1, 84, 84, 4))
+                else:
+                    FrameBuffer = newFrameBuffer
+
+                # if done
+                if done:
+                    #update values for TensorBoard
+                    stats = [self.total_reward, self.PropActMaxAvg / float(epsiodeStep),
+                             epsiodeStep]
+                    for i in range(len(stats)):
+                        self.sess.run(self.update_ops[i], feed_dict={
+                            self.summary_placeholders[i]: float(stats[i])
+                        })
+                    summary_str = self.sess.run(self.summary_op)
+                    self.summary_writer.add_summary(summary_str, Episode + 1)
+
+                    #print stats for debugging
+                    print("episode:", Episode, 
+                         "  score:", self.total_reward, 
+                         "  step:", epsiodeStep, 
+                         "  average_q:", self.PropActMaxAvg / float(epsiodeStep),
+                         "  Excecuted by Thread:", self.threadNo)
+
+                    #reset/update variables
+                    self.PropActMaxAvg = 0
+                    self.LossAvg = 0
+                    epsiodeStep = 0
+                    self.total_reward = 0
+                    Episode += 1
     

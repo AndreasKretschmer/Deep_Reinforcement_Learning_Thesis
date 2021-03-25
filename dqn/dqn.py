@@ -29,7 +29,7 @@ class DQNModel:
         self.avg_q , self.avg_loss = 0, 0
         self.sess = tf.InteractiveSession()
         self.summaryPlaceholders, self.update_ops, self.summary_op = self.setupSummary()
-        self.summary_writer = tf.summary.FileWriter(hyperparameters.SAVE_LOGS_PATH, self.sess.graph)
+        self.summary_writer = tf.summary.FileWriter(hyperparameters.SAVE_LOGS_PATH_DQN, self.sess.graph)
         self.sess.run(tf.global_variables_initializer())
 
         #init epsilon values
@@ -95,8 +95,17 @@ class DQNModel:
             return np.random.randint(self.actionSpace) #take random action 
         else:
             return np.argmax(q_value[0]) #select action greedy (with the highest q value)
-        
 
+    def GetActionEval(self, State):
+        State = np.float32(State / 255.0)
+        q_value = self.QNetwork.predict(State) #get q values for actions from q network
+        self.avg_q += np.amax(q_value) #log max q value for Tensorboard
+
+        if np.random.random() <= 0.1: #e-greedy decay policy
+            return np.random.randint(self.actionSpace) #take random action 
+        else:
+            return np.argmax(q_value[0]) #select action greedy (with the highest q value)
+        
     def UpdateEpsilon(self):
         #updates the epsilon 
         self.epsilon -= self.epsilon_decay
@@ -143,4 +152,4 @@ class DQNModel:
         self.avg_loss += loss
 
     def LoadModel(self):
-        self.QNetwork.load_weights(hyperparameters.SAVE_MODEL_PATH + '/' + hyperparameters.DQN_MODEL_NAME)
+        self.QNetwork.load_weights("models/dqn/dqn.h5")

@@ -37,7 +37,7 @@ class A3CAgent:
     def train(self):
         agents = [Worker(self.actionSpace, self.StateSpace, [self.actor, self.critic], self.sess, self.optimizer,
                         self.DiscountFactor, [self.summary_op, self.summary_placeholders,
-                        self.update_ops, self.summary_writer], i) for i in range(self.threads)]
+                        self.update_ops, self.summary_writer], i, False) for i in range(self.threads)]
 
         for agent in agents:
             time.sleep(1)
@@ -122,3 +122,14 @@ class A3CAgent:
     def LoadModel(self, name):
         self.actor.load_weights(name + "_actor.h5")
         self.critic.load_weights(name + "_critic.h5")
+    
+    def Evaluate(self):
+        self.LoadModel("models/breakout_a3c")
+
+        agents = [Worker(self.actionSpace, self.StateSpace, [self.actor, self.critic], self.sess, self.optimizer,
+                        self.DiscountFactor, [self.summary_op, self.summary_placeholders,
+                        self.update_ops, self.summary_writer], i, True) for i in range(1)]
+
+        for agent in agents:
+            time.sleep(1)
+            agent.start()
