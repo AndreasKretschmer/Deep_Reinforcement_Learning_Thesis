@@ -5,5 +5,5 @@ pandas==1.2.2
 tensorflow==1.15.0
 Pillow==4.1.0
 gym==0.18.0
-h5py==2.7.0
+h5py==2.1.0
 scikit-image==0.13.0

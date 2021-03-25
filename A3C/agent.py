@@ -124,7 +124,7 @@ class A3CAgent:
         self.critic.load_weights(name + "_critic.h5")
     
     def Evaluate(self):
-        self.LoadModel("models/breakout_a3c")
+        self.LoadModel("models/a3c/breakout_a3c")
 
         agents = [Worker(self.actionSpace, self.StateSpace, [self.actor, self.critic], self.sess, self.optimizer,
                         self.DiscountFactor, [self.summary_op, self.summary_placeholders,

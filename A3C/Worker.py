@@ -3,7 +3,6 @@ import numpy as np
 import gym
 import random
 from utility.hyperparameters import hyperparameters
-from utility.PreProcessing import PreProcessing
 from keras.models import Model
 from keras.optimizers import RMSprop
 from keras.layers import Dense, Flatten, Input
@@ -81,7 +80,7 @@ class Worker(threading.Thread):
         else:
             self.train()
 
-    def train():
+    def train(self):
         global Episode
         self.Steps = 0
         while Episode < hyperparameters.MAX_EPISODES_A3C:

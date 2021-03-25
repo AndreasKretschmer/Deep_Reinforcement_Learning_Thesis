@@ -2,10 +2,11 @@ import argparse
 from dqn.agent import DQNAgent as DQNAgent
 from A3C.agent import A3CAgent as A3CGlobalAgent
 
-argparse.add_argument("-m", "--model", type=str, action='store', help="Please specify the agent you wish to use, either DQN or A3C", required=True)
-argparse.add_argument("-n", "--mode", type=str, action='store', help="Please specify the mode you wish to run, either train or test", required=True)
+parser = argparse.ArgumentParser(description='Run the Trainingsprocess or Evaluationprocess for a DQN- or A3C-Model.')
+parser.add_argument("-m", "--model", type=str, action='store', help="Please specify the agent you wish to use, either DQN or A3C", required=True)
+parser.add_argument("-n", "--mode", type=str, action='store', help="Please specify the mode you wish to run, either train or test", required=True)
 
-args = argparse.parse_args()
+args = parser.parse_args()
 print(args)
 
 if args.model == 'DQN':

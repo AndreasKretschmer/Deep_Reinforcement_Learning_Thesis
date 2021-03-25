@@ -6,6 +6,9 @@ class hyperparameters:
     DISCOUNTFACTOR = 0.99
     NO_ACTION_STEPS = 30
     ACTION_SIZE = 3
+    RMS_LR = 2.5e-4
+    RMS_RHO = 0.95
+    RMS_EPS = 0.01
 
     #DQN Hyperparameters
     MAX_EPISODES_DQN = 50000
@@ -16,9 +19,6 @@ class hyperparameters:
     MIN_EPSILON = 0.1
     MIN_EXP = 50000
     UPDATE_TARGET_EVERY = 10000
-    RMS_LR = 2.5e-4
-    RMS_RHO = 0.95
-    RMS_EPS = 0.01
     DQN_MODEL_NAME = 'dqn.h5'
     SAVE_LOGS_PATH_DQN = "./logs/breakout_dqn"
     SAVE_MODEL_PATH_DQN = "./models/dqn"
