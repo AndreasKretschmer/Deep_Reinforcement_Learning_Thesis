@@ -185,15 +185,14 @@ class DQNAgent:
 
                 if done:
                     #update values for TensorBoard
-                    if self.Steps > hyperparameters.MIN_EXP:
-                        stats = [self.total_reward, self.model.avg_q / epsiodeStep, epsiodeStep,
+                    stats = [self.total_reward, self.model.avg_q / epsiodeStep, epsiodeStep,
                                 self.model.avg_loss / epsiodeStep]
-                        for i in range(len(stats)):
-                            self.model.sess.run(self.model.update_ops[i], feed_dict={
+                    for i in range(len(stats)):
+                        self.model.sess.run(self.model.update_ops[i], feed_dict={
                                 self.model.summaryPlaceholders[i]: float(stats[i])
                             })
-                        summary_str = self.model.sess.run(self.model.summary_op)
-                        self.model.summary_writer.add_summary(summary_str, episode + 1)
+                    summary_str = self.model.sess.run(self.model.summary_op)
+                    self.model.summary_writer.add_summary(summary_str, episode + 1)
 
                     #print stats for debugging
                     print("episode:", episode, 
