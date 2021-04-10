@@ -1,7 +1,4 @@
-logs/
-.h5
 .pcy
-modelsdqn.h5
 .vscode/
 __pycache__/
 dqn/__pycache__/
