@@ -34,7 +34,7 @@ class Worker(threading.Thread):
         self.maxLives = self.env.unwrapped.ale.lives()
 
         self.actor, self.critic = model # assign global model
-        self.local_actor, self.local_critic = self.BuildLocalModel() #init local model for this thread
+        self.localActor, self.localCritic = self.BuildLocalModel() #init local model for this thread
 
         #variables to setup summary
         self.sess = sess
@@ -43,7 +43,7 @@ class Worker(threading.Thread):
 
         self.PropActMaxAvg = 0
         self.LossAvg = 0
-        self.total_reward = 0
+        self.totalReward = 0
         self.Steps = 0
         self.threadNo = threadNo
         self.Evaluate = eval
@@ -85,7 +85,7 @@ class Worker(threading.Thread):
         self.Steps = 0
         while Episode < hyperparameters.MAX_EPISODES_A3C:
             #initialize variables
-            epsiodeStep, self.total_reward = 0, 0
+            epsiodeStep, self.totalReward = 0, 0
             dead, done = False, False
             LivesAtStart = self.maxLives
 
@@ -133,7 +133,7 @@ class Worker(threading.Thread):
                     dead = True
                     LivesAtStart = info['ale.lives']
 
-                self.total_reward += reward
+                self.totalReward += reward
                 reward = np.clip(reward, -1., 1.)
 
                 # save Experience to calculate discounted reward
@@ -155,7 +155,7 @@ class Worker(threading.Thread):
                 # if done
                 if done:
                     #update values for TensorBoard
-                    stats = [self.total_reward, self.PropActMaxAvg / float(epsiodeStep),
+                    stats = [self.totalReward, self.PropActMaxAvg / float(epsiodeStep),
                              epsiodeStep]
                     for i in range(len(stats)):
                         self.sess.run(self.update_ops[i], feed_dict={
@@ -166,7 +166,7 @@ class Worker(threading.Thread):
 
                     #print stats for debugging
                     print("episode:", Episode, 
-                         "  score:", self.total_reward, 
+                         "  score:", self.totalReward, 
                          "  step:", epsiodeStep, 
                          "  average_q:", self.PropActMaxAvg / float(epsiodeStep),
                          "  Excecuted by Thread:", self.threadNo)
@@ -175,7 +175,7 @@ class Worker(threading.Thread):
                     self.PropActMaxAvg = 0
                     self.LossAvg = 0
                     epsiodeStep = 0
-                    self.total_reward = 0
+                    self.totalReward = 0
                     Episode += 1
 
     def CalcDiscRewards(self, rewards, done):
@@ -210,7 +210,7 @@ class Worker(threading.Thread):
 
     def GetAction(self, State):
         State = np.float32(State / 255.0)
-        policy = self.local_actor.predict(State)[0] # get action from current policy
+        policy = self.localActor.predict(State)[0] # get action from current policy
         ActionIdx = np.random.choice(self.actionSpace, 1, p=policy)[0] # select a possible action with propapility policy[0]
 
         return ActionIdx
@@ -224,15 +224,15 @@ class Worker(threading.Thread):
         self.rewards.append(reward)
 
     def UpdateLocalModel(self):
-        self.local_actor.set_weights(self.actor.get_weights())
-        self.local_critic.set_weights(self.critic.get_weights())
+        self.localActor.set_weights(self.actor.get_weights())
+        self.localCritic.set_weights(self.critic.get_weights())
     
     def Eval(self):
         global Episode
         self.Steps = 0
         while Episode < 1001:
             #initialize variables
-            epsiodeStep, self.total_reward = 0, 0
+            epsiodeStep, self.totalReward = 0, 0
             dead, done = False, False
             LivesAtStart = self.maxLives
 
@@ -280,7 +280,7 @@ class Worker(threading.Thread):
                     dead = True
                     LivesAtStart = info['ale.lives']
 
-                self.total_reward += reward
+                self.totalReward += reward
 
                 #if agent loses the ball and still has lives left => get new initial state
                 if dead:
@@ -292,7 +292,7 @@ class Worker(threading.Thread):
                 # if done
                 if done:
                     #update values for TensorBoard
-                    stats = [self.total_reward, self.PropActMaxAvg / float(epsiodeStep),
+                    stats = [self.totalReward, self.PropActMaxAvg / float(epsiodeStep),
                              epsiodeStep]
                     for i in range(len(stats)):
                         self.sess.run(self.update_ops[i], feed_dict={
@@ -303,7 +303,7 @@ class Worker(threading.Thread):
 
                     #print stats for debugging
                     print("episode:", Episode, 
-                         "  score:", self.total_reward, 
+                         "  score:", self.totalReward, 
                          "  step:", epsiodeStep, 
                          "  average_q:", self.PropActMaxAvg / float(epsiodeStep),
                          "  Excecuted by Thread:", self.threadNo)
@@ -312,6 +312,6 @@ class Worker(threading.Thread):
                     self.PropActMaxAvg = 0
                     self.LossAvg = 0
                     epsiodeStep = 0
-                    self.total_reward = 0
+                    self.totalReward = 0
                     Episode += 1
     

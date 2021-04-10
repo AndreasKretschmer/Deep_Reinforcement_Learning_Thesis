@@ -27,7 +27,7 @@ class DQNAgent:
         self.model = DQNModel(hyperparameters.ACTION_SIZE, self.resizeShape)
 
         #values to track the performance of the agent
-        self.total_reward = 0
+        self.totalReward = 0
         self.Steps = 0
 
         # self.PreProcessing = PreProcessing();
@@ -103,8 +103,8 @@ class DQNAgent:
 
                 if done:
                     #update values for TensorBoard
-                    stats = [self.total_reward, self.model.avg_q / epsiodeStep, epsiodeStep,
-                                self.model.avg_loss / epsiodeStep]
+                    stats = [self.total_reward, self.model.avgQ / epsiodeStep, epsiodeStep,
+                                self.model.avgLoss / epsiodeStep]
                     for i in range(len(stats)):
                         self.model.sess.run(self.model.update_ops[i], feed_dict={
                                 self.model.summaryPlaceholders[i]: float(stats[i])
@@ -118,9 +118,9 @@ class DQNAgent:
                       "  memory length:", len(self.model.ExperienceBuffer),
                       "  epsilon:", self.model.epsilon,
                       "  global_step:", self.Steps, 
-                      "  average_q:", (self.model.avg_q / epsiodeStep),
-                      "  average loss:", (self.model.avg_loss / epsiodeStep))
-                    self.model.avg_q, self.model.avg_loss, self.total_reward = 0, 0, 0
+                      "  average_q:", (self.model.avgQ / epsiodeStep),
+                      "  average loss:", (self.model.avgLoss / epsiodeStep))
+                    self.model.avgQ, self.model.avgLoss, self.total_reward = 0, 0, 0
 
     def Evaluate(self):
         self.model.LoadModel()
@@ -185,8 +185,8 @@ class DQNAgent:
 
                 if done:
                     #update values for TensorBoard
-                    stats = [self.total_reward, self.model.avg_q / epsiodeStep, epsiodeStep,
-                                self.model.avg_loss / epsiodeStep]
+                    stats = [self.total_reward, self.model.avgQ / epsiodeStep, epsiodeStep,
+                                self.model.avgLoss / epsiodeStep]
                     for i in range(len(stats)):
                         self.model.sess.run(self.model.update_ops[i], feed_dict={
                                 self.model.summaryPlaceholders[i]: float(stats[i])
@@ -200,6 +200,6 @@ class DQNAgent:
                       "  memory length:", len(self.model.ExperienceBuffer),
                       "  epsilon:", self.model.epsilon,
                       "  global_step:", self.Steps, 
-                      "  average_q:", (self.model.avg_q / epsiodeStep),
-                      "  average loss:", (self.model.avg_loss / epsiodeStep))
-                    self.model.avg_q, self.model.avg_loss, self.total_reward = 0, 0, 0
+                      "  average_q:", (self.model.avgQ / epsiodeStep),
+                      "  average loss:", (self.model.avgLoss / epsiodeStep))
+                    self.model.avgQ, self.model.avgLoss, self.total_reward = 0, 0, 0

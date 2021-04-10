@@ -26,7 +26,7 @@ class DQNModel:
 
         # init parameters for Tensorboard
         # logDir = hyperparameters.SAVE_LOGS_PATH
-        self.avg_q , self.avg_loss = 0, 0
+        self.avgQ , self.avgLoss = 0, 0
         self.sess = tf.InteractiveSession()
         self.summaryPlaceholders, self.update_ops, self.summary_op = self.setupSummary()
         self.summary_writer = tf.summary.FileWriter(hyperparameters.SAVE_LOGS_PATH_DQN, self.sess.graph)
@@ -34,8 +34,8 @@ class DQNModel:
 
         #init epsilon values
         self.epsilon = hyperparameters.START_EPSILON
-        self.min_epsilon = hyperparameters.MIN_EPSILON
-        self.epsilon_decay = (self.epsilon - self.min_epsilon) / hyperparameters.EPSILON_DECAY_STEPS
+        self.minEpsilon = hyperparameters.MIN_EPSILON
+        self.epsilonDecay = (self.epsilon - self.minEpsilon) / hyperparameters.EPSILON_DECAY_STEPS
 
         np.random.seed(1)
         tf.set_random_seed(1)
@@ -76,7 +76,7 @@ class DQNModel:
         summaryUpdate = [summaryVariables[i].assign(summaryPlaceholders[i]) for i in
                       range(len(summaryVariables))]
         summary_op = tf.summary.merge_all()
-        return summaryPlaceholders, summaryUpdate, summary_op
+        return summaryPlaceholders, summaryUpdate, summaryOp
     
     def UpdateTargetNetwork(self):
         #sets the TargetNetwork = QNetwork
@@ -89,7 +89,7 @@ class DQNModel:
     def GetAction(self, State):
         State = np.float32(State / 255.0)
         q_value = self.QNetwork.predict(State) #get q values for actions from q network
-        self.avg_q += np.amax(q_value) #log max q value for Tensorboard
+        self.avgQ += np.amax(q_value) #log max q value for Tensorboard
 
         if np.random.random() <= self.epsilon: #e-greedy decay policy
             return np.random.randint(self.actionSpace) #take random action 
@@ -99,7 +99,7 @@ class DQNModel:
     def GetActionEval(self, State):
         State = np.float32(State / 255.0)
         q_value = self.QNetwork.predict(State) #get q values for actions from q network
-        self.avg_q += np.amax(q_value) #log max q value for Tensorboard
+        self.avgQ += np.amax(q_value) #log max q value for Tensorboard
 
         if np.random.random() <= 0.1: #e-greedy decay policy
             return np.random.randint(self.actionSpace) #take random action 
@@ -108,8 +108,8 @@ class DQNModel:
         
     def UpdateEpsilon(self):
         #updates the epsilon 
-        self.epsilon -= self.epsilon_decay
-        self.epsilon = max(self.min_epsilon, self.epsilon)
+        self.epsilon -= self.epsilonDecay
+        self.epsilon = max(self.minEpsilon, self.epsilon)
 
     def SaveModel(self):
         #save the model parameters
@@ -149,7 +149,7 @@ class DQNModel:
                 Target[i][expAction[i]] = expReward[i] + hyperparameters.DISCOUNTFACTOR * np.amax(TargetQs[i])
 
         loss = self.QNetwork.train_on_batch(expStates, Target) #performs the gradient update
-        self.avg_loss += loss
+        self.avgLoss += loss
 
     def LoadModel(self):
         self.QNetwork.load_weights("models/dqn/dqn.h5")
