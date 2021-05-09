@@ -76,7 +76,7 @@ class DQNModel:
         summaryUpdate = [summaryVariables[i].assign(summaryPlaceholders[i]) for i in
                       range(len(summaryVariables))]
         summary_op = tf.summary.merge_all()
-        return summaryPlaceholders, summaryUpdate, summaryOp
+        return summaryPlaceholders, summaryUpdate, summary_op
     
     def UpdateTargetNetwork(self):
         #sets the TargetNetwork = QNetwork

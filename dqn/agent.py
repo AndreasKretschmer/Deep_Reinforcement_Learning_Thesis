@@ -27,7 +27,7 @@ class DQNAgent:
         self.model = DQNModel(hyperparameters.ACTION_SIZE, self.resizeShape)
 
         #values to track the performance of the agent
-        self.totalReward = 0
+        self.total_reward = 0
         self.Steps = 0
 
         # self.PreProcessing = PreProcessing();
